@@ -1,6 +1,6 @@
 import { Fighter, ATTACKS, GROUND_Y, STAGE_L, STAGE_R } from "./fighter.js";
 import { Fx } from "./fx.js";
-import { clamp, rand, overlap, lerp } from "./utils.js";
+import { clamp, rand, overlap, lerp, toFa } from "./utils.js";
 
 export const W = 1280;
 export const H = 720;
@@ -137,7 +137,7 @@ export class Game {
     this.cpu.guard = 0;
     this.cpu.lastFoeAttack = null;
     this.announce(
-      first ? "آماده" : `راند ${["", "۱", "۲", "۳"][this.round] || this.round}`,
+      first ? "آماده" : `راند ${toFa(this.round)}`,
       first ? "READY" : "ROUND",
       "#ffe8c8", 1.1, 82
     );
@@ -365,7 +365,8 @@ export class Game {
         if (ended) {
           this.enterMatchEnd();
         } else {
-          this.round++;
+          // A tied round does not count; replay the same round number.
+          if (!this.roundResult?.draw) this.round++;
           this.beginRound(false);
         }
       }
@@ -550,7 +551,9 @@ export class Game {
           break;
         }
       }
-      if (clashed) continue;
+      // Both projectiles are gone; the remaining indices shifted, so stop
+      // this pass and let the rest update on the next frame.
+      if (clashed) break;
 
       const target = this.fighters[1 - p.owner];
       if (target.ko) continue;

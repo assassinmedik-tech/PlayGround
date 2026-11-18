@@ -1458,12 +1458,12 @@ export class Renderer {
     ctx.fillStyle = low ? "#ff8a70" : "#fff2da";
     ctx.shadowColor = low ? "rgba(255,70,40,0.7)" : "rgba(255,180,90,0.4)";
     ctx.shadowBlur = low ? 18 : 8;
-    ctx.fillText(String(timeLeft).padStart(2, "0"), 640, 66);
+    ctx.fillText(toFa(String(timeLeft).padStart(2, "0")), 640, 66);
     ctx.shadowBlur = 0;
 
-    ctx.font = "700 8px Vazirmatn, sans-serif";
+    ctx.font = "700 9px Vazirmatn, sans-serif";
     ctx.fillStyle = "rgba(255,230,200,0.55)";
-    ctx.fillText("R O U N D   " + ["", "1", "2", "3"][game.round], 640, 98);
+    ctx.fillText(`راند ${toFa(game.round)}`, 640, 98);
     ctx.restore();
   }
 
@@ -1627,7 +1627,9 @@ export class Renderer {
     ctx.shadowBlur = 0;
 
     if (a.sub) {
-      const spaced = a.sub.split("").join(" ");
+      const spaced = a.sub.includes(".") ? a.sub : a.sub.split("").join(" ");
+      ctx.save();
+      ctx.direction = "ltr";
       ctx.font = "700 15px Vazirmatn, sans-serif";
       ctx.fillStyle = "rgba(255,240,225,0.8)";
       ctx.fillText(spaced, 0, a.size * 0.62);
@@ -1641,6 +1643,7 @@ export class Renderer {
       ctx.moveTo(w + 8, a.size * 0.62);
       ctx.lineTo(w + 26, a.size * 0.62);
       ctx.stroke();
+      ctx.restore();
     }
     ctx.restore();
   }

@@ -1,7 +1,8 @@
-import { Game, PALETTES } from "./game.js";
+import { Game } from "./game.js";
 import { Renderer } from "./render.js";
 import { Input } from "./input.js";
 import { Sfx } from "./audio.js";
+import { toFa } from "./utils.js";
 
 const $ = (sel) => document.querySelector(sel);
 const canvas = $("#game");
@@ -21,6 +22,7 @@ const screens = {
   result: $("#result-screen"),
 };
 const touchControls = $("#touch-controls");
+const rotateHint = $("#rotate-hint");
 
 const isTouch =
   "ontouchstart" in window ||
@@ -31,6 +33,7 @@ document.body.classList.toggle("touch-device", isTouch);
 let mode = "pvp";
 let muted = localStorage.getItem("dos-muted") === "1";
 sfx.setMuted(muted);
+$("#btn-sound").setAttribute("aria-pressed", String(muted));
 
 for (const f of game.fighters) {
   f._shown = f.health;
@@ -50,6 +53,28 @@ function setTouchVisible(visible) {
   if (visible && isTouch) {
     touchControls.classList.toggle("cpu-mode", mode === "cpu");
   }
+  updateRotateHint();
+}
+
+function updateRotateHint() {
+  const portrait = window.innerHeight > window.innerWidth;
+  const playing =
+    !touchControls.hidden &&
+    screens.pause.hidden &&
+    screens.result.hidden &&
+    game.state !== "menu";
+  rotateHint.hidden = !(isTouch && portrait && playing);
+}
+
+/** Ask phones held upright to rotate into the natural landscape view. */
+function requestMobileLandscape() {
+  if (!isTouch || window.innerWidth >= window.innerHeight) return;
+  const root = document.documentElement;
+  if (!root.requestFullscreen || document.fullscreenElement) return;
+  root
+    .requestFullscreen({ navigationUI: "hide" })
+    .then(() => screen.orientation?.lock?.("landscape") ?? null)
+    .catch(() => {});
 }
 
 // ---------------- Menu wiring ----------------
@@ -57,7 +82,10 @@ document.querySelectorAll(".mode").forEach((btn) => {
   btn.addEventListener("click", () => {
     mode = btn.dataset.mode;
     game.setMode(mode);
-    document.querySelectorAll(".mode").forEach((b) => b.classList.toggle("active", b === btn));
+    document.querySelectorAll(".mode").forEach((b) => {
+      b.classList.toggle("active", b === btn);
+      b.setAttribute("aria-pressed", String(b === btn));
+    });
     sfx.ui();
     btn.blur();
     if (!touchControls.hidden) touchControls.classList.toggle("cpu-mode", mode === "cpu");
@@ -80,6 +108,7 @@ function startMatch() {
   sfx.resume();
   sfx.select();
   hideAllScreens();
+  requestMobileLandscape();
   game.setMode(mode);
   game.startMatch(mode);
   setTouchVisible(true);
@@ -122,6 +151,7 @@ $("#btn-resume").addEventListener("click", () => {
 $("#btn-restart").addEventListener("click", () => {
   screens.pause.hidden = true;
   hideAllScreens();
+  requestMobileLandscape();
   game.startMatch(mode);
   setTouchVisible(true);
 });
@@ -136,10 +166,14 @@ function goMenu() {
   game.resetToMenu();
   setTouchVisible(false);
   input.clear();
+  if (document.fullscreenElement) {
+    document.exitFullscreen?.()?.catch?.(() => {});
+  }
 }
 
 $("#btn-rematch").addEventListener("click", () => {
   $("#result-screen").hidden = true;
+  requestMobileLandscape();
   game.startMatch(mode);
   setTouchVisible(true);
 });
@@ -150,20 +184,28 @@ game.onMatchEnd = ({ winner, score }) => {
   const title = $("#result-title");
   const sub = $("#result-sub");
   const scoreEl = $("#result-score");
-  const loserId = winner.id === 0 ? 1 : 0;
   title.textContent = `${winner.palette.name} برنده میدان شد`;
   title.style.color = winner.palette.secondary;
   title.style.textShadow = `0 0 34px ${winner.palette.glow}55`;
-  sub.textContent = `نتیجه نهایی ${score[0]} — ${score[1]}`;
+  sub.textContent = `نتیجه نهایی ${toFa(score[0])} — ${toFa(score[1])}`;
   scoreEl.innerHTML = "";
   for (let p = 0; p < 2; p++) {
+    const group = document.createElement("div");
+    group.className = `score-side ${p === 0 ? "p1" : "p2"}`;
+    const name = document.createElement("span");
+    name.className = "score-name";
+    name.textContent = game.fighters[p].palette.name;
+    const row = document.createElement("div");
+    row.className = "score-pips";
+    const wins = p === 0 ? score[0] : score[1];
     for (let i = 0; i < 2; i++) {
       const pip = document.createElement("span");
       pip.className = "score-pip";
-      const wins = p === 0 ? score[0] : score[1];
       if (i < wins) pip.classList.add("win", p === 0 ? "p1" : "p2");
-      scoreEl.appendChild(pip);
+      row.appendChild(pip);
     }
+    group.append(name, row);
+    scoreEl.appendChild(group);
   }
   screens.result.hidden = false;
   setTouchVisible(false);
@@ -231,15 +273,36 @@ function resize() {
     canvas.width = w;
     canvas.height = h;
   }
+  updateRotateHint();
 }
 window.addEventListener("resize", resize);
 window.addEventListener("orientationchange", () => setTimeout(resize, 250));
+document.addEventListener("fullscreenchange", () => setTimeout(resize, 250));
 resize();
 
 // ---------------- Main loop ----------------
 const STEP = 1 / 60;
 let acc = 0;
 let last = performance.now();
+
+const touchMeterButtons = [0, 1].map((id) => {
+  const side = touchControls.querySelector(`.touch-side.p${id + 1}`);
+  return {
+    id,
+    special: side?.querySelector(".abtn.a3"),
+    super: side?.querySelector(".abtn.a4"),
+  };
+});
+
+function syncTouchMeter() {
+  for (const rec of touchMeterButtons) {
+    const f = game.fighters[rec.id];
+    if (!f) continue;
+    rec.special?.classList.toggle("locked", f.meter < 25);
+    rec.super?.classList.toggle("locked", f.meter < 100);
+    rec.super?.classList.toggle("ready", f.meter >= 100);
+  }
+}
 
 function frameLoop(now) {
   const elapsed = Math.min(0.1, (now - last) / 1000);
@@ -255,6 +318,7 @@ function frameLoop(now) {
 
   ctx.setTransform(canvas.width / 1280, 0, 0, canvas.height / 720, 0, 0);
   renderer.render(ctx, game);
+  syncTouchMeter();
 
   requestAnimationFrame(frameLoop);
 }
