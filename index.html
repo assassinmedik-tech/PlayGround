@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>نبرد سایه‌ها | Duel of Shadows</title>
+  <meta name="description" content="بازی مبارزه‌ای ۲ بعدی دو نفره — دو بازیکن روی یک صفحه" />
+  <meta name="theme-color" content="#0d0816" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23120b1d'/%3E%3Ccircle cx='24' cy='32' r='14' fill='%23ff6a3d'/%3E%3Ccircle cx='42' cy='32' r='14' fill='%235be7ff'/%3E%3C/svg%3E" />
+  <link rel="preload" href="assets/fonts/Vazirmatn-Bold.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="assets/fonts/Vazirmatn-Black.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="frame">
+    <div id="stage"><canvas id="game" width="1280" height="720" aria-label="میدان مبارزه دو نفره"></canvas></div>
+
+    <div id="ui">
+      <!-- ============ MAIN MENU ============ -->
+      <section id="menu-screen" class="screen menu-screen">
+        <div class="menu-panel">
+          <header class="menu-head">
+            <p class="eyebrow"><span></span> بازی مبارزه‌ای دو نفره <span></span></p>
+            <h1>نبرد <em>سایه‌ها</em></h1>
+            <p class="latin-title">DUEL OF SHADOWS</p>
+            <p class="tagline">دو مبارز، یک میدان، یک برنده.</p>
+          </header>
+
+          <div class="versus">
+            <article class="fighter-card p1">
+              <div class="crest"><span>آ</span></div>
+              <div class="fighter-meta">
+                <h2>آتش</h2>
+                <p class="latin">ATASH · BLAZE</p>
+                <p class="desc">مشت سریع، لگد سنگین. شعله‌های خشم.</p>
+              </div>
+              <div class="badge">بازیکن ۱</div>
+            </article>
+
+            <div class="vs-mark"><span>VS</span></div>
+
+            <article class="fighter-card p2">
+              <div class="crest"><span>ی</span></div>
+              <div class="fighter-meta">
+                <h2>یخ</h2>
+                <p class="latin">YAKH · FROST</p>
+                <p class="desc">ضربه‌های سرد، موج یخی. آرام و بی‌رحم.</p>
+              </div>
+              <div class="badge">بازیکن ۲</div>
+            </article>
+          </div>
+
+          <div class="menu-actions">
+            <div class="mode-row" role="group" aria-label="حالت بازی">
+              <button type="button" class="mode active" data-mode="pvp">
+                <strong>دو نفره</strong><span>روی یک صفحه</span>
+              </button>
+              <button type="button" class="mode" data-mode="cpu">
+                <strong>مقابل کامپیوتر</strong><span>تمرین تک‌نفره</span>
+              </button>
+            </div>
+
+            <button type="button" id="btn-start" class="cta">
+              <span class="cta-main">شروع نبرد</span>
+              <span class="cta-sub">START FIGHT · ENTER</span>
+            </button>
+
+            <div class="sub-row">
+              <button type="button" id="btn-controls" class="ghost-btn">راهنمای کنترل‌ها</button>
+              <button type="button" id="btn-sound" class="ghost-btn" aria-pressed="false">
+                <span class="sound-on">صدا روشن</span><span class="sound-off">صدا خاموش</span>
+              </button>
+            </div>
+          </div>
+
+          <div id="controls-panel" class="controls-panel" hidden>
+            <div class="controls-col">
+              <h3><i class="dot p1"></i> بازیکن ۱ — آتش</h3>
+              <ul>
+                <li><span>حرکت / خم شدن</span><kbd>A</kbd><kbd>D</kbd><kbd>S</kbd></li>
+                <li><span>پرش</span><kbd>W</kbd></li>
+                <li><span>مشت سریع</span><kbd>J</kbd></li>
+                <li><span>لگد سنگین</span><kbd>K</kbd></li>
+                <li><span>موج ویژه <small>(۲۵ انرژی)</small></span><kbd>L</kbd></li>
+                <li><span>ضربه نهایی <small>(۱۰۰ انرژی)</small></span><kbd>I</kbd></li>
+              </ul>
+            </div>
+            <div class="controls-col">
+              <h3><i class="dot p2"></i> بازیکن ۲ — یخ</h3>
+              <ul>
+                <li><span>حرکت / خم شدن</span><kbd>←</kbd><kbd>→</kbd><kbd>↓</kbd></li>
+                <li><span>پرش</span><kbd>↑</kbd></li>
+                <li><span>مشت سریع</span><kbd>۱</kbd></li>
+                <li><span>لگد سنگین</span><kbd>۲</kbd></li>
+                <li><span>موج ویژه <small>(۲۵ انرژی)</small></span><kbd>۳</kbd></li>
+                <li><span>ضربه نهایی <small>(۱۰۰ انرژی)</small></span><kbd>۴</kbd></li>
+              </ul>
+            </div>
+            <div class="controls-tip">
+              <p><strong>دفاع:</strong> کلید خلاف جهت حریف را نگه دارید تا ضربه را مهار کنید.</p>
+              <p><strong>توقف:</strong> <kbd>Esc</kbd> یا <kbd>P</kbd> — روی موبایل دکمه توقف بالای صفحه.</p>
+              <p><strong>کمبو:</strong> ضربه‌ها را پشت‌سرهم بزنید؛ نوار انرژی با حمله و دفاع پر می‌شود.</p>
+            </div>
+          </div>
+
+          <footer class="menu-foot">
+            <span>۳ راند · بهترین از ۳</span>
+            <span class="sep"></span>
+            <span>کنترل لمسی برای موبایل</span>
+          </footer>
+          <p class="portrait-note">↻ برای بهترین تجربه، گوشی را افقی بگیرید</p>
+        </div>
+      </section>
+
+      <!-- ============ PAUSE ============ -->
+      <section id="pause-screen" class="screen dim-screen" hidden>
+        <div class="dialog">
+          <p class="eyebrow"><span></span> توقف <span></span></p>
+          <h2>نبرد متوقف شد</h2>
+          <p class="dialog-sub">برای ادامه آماده‌ای؟</p>
+          <div class="dialog-actions">
+            <button type="button" id="btn-resume" class="cta small"><span class="cta-main">ادامه نبرد</span><span class="cta-sub">RESUME</span></button>
+            <button type="button" id="btn-restart" class="ghost-btn">شروع دوباره</button>
+            <button type="button" id="btn-quit" class="ghost-btn">منوی اصلی</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ RESULT ============ -->
+      <section id="result-screen" class="screen dim-screen" hidden>
+        <div class="dialog result">
+          <p class="eyebrow"><span></span> پایان نبرد <span></span></p>
+          <h2 id="result-title">آتش برنده شد</h2>
+          <p id="result-sub" class="dialog-sub">۲ — ۰</p>
+          <div id="result-score" class="result-score"></div>
+          <div class="dialog-actions">
+            <button type="button" id="btn-rematch" class="cta small"><span class="cta-main">نبرد دوباره</span><span class="cta-sub">REMATCH</span></button>
+            <button type="button" id="btn-result-menu" class="ghost-btn">منوی اصلی</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ TOUCH CONTROLS ============ -->
+      <div id="touch-controls" class="touch-controls" hidden>
+        <div class="touch-side p1" data-side="1">
+          <div class="dpad">
+            <button type="button" class="dbtn up" data-code="KeyW" aria-label="پرش">▲</button>
+            <button type="button" class="dbtn left" data-code="KeyA" aria-label="چپ">◀</button>
+            <button type="button" class="dbtn down" data-code="KeyS" aria-label="خم">▼</button>
+            <button type="button" class="dbtn right" data-code="KeyD" aria-label="راست">▶</button>
+          </div>
+          <div class="atk-grid">
+            <button type="button" class="abtn a1" data-code="KeyJ">مشت</button>
+            <button type="button" class="abtn a2" data-code="KeyK">لگد</button>
+            <button type="button" class="abtn a3" data-code="KeyL">ویژه</button>
+            <button type="button" class="abtn a4" data-code="KeyI">سوپر</button>
+          </div>
+        </div>
+        <div class="touch-side p2" data-side="2">
+          <div class="atk-grid">
+            <button type="button" class="abtn a1" data-code="Digit1">مشت</button>
+            <button type="button" class="abtn a2" data-code="Digit2">لگد</button>
+            <button type="button" class="abtn a3" data-code="Digit3">ویژه</button>
+            <button type="button" class="abtn a4" data-code="Digit4">سوپر</button>
+          </div>
+          <div class="dpad">
+            <button type="button" class="dbtn up" data-code="ArrowUp" aria-label="پرش">▲</button>
+            <button type="button" class="dbtn left" data-code="ArrowLeft" aria-label="چپ">◀</button>
+            <button type="button" class="dbtn down" data-code="ArrowDown" aria-label="خم">▼</button>
+            <button type="button" class="dbtn right" data-code="ArrowRight" aria-label="راست">▶</button>
+          </div>
+        </div>
+        <button type="button" id="btn-touch-pause" class="touch-pause" aria-label="توقف">Ⅱ</button>
+      </div>
+
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
